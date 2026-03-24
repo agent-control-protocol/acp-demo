@@ -40,6 +40,8 @@
   .toast.error { background: #da3633; color: #fff; }
   .toast.info { background: #1f6feb; color: #fff; }
   @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
+  @keyframes dots { 0%,20% { content: '.'; } 40% { content: '..'; } 60%,100% { content: '...'; } }
+  .chat-status.thinking::after { content: ''; animation: dots 1.2s infinite steps(1); }
 
   /* Chat panel */
   .chat-panel { width: 380px; display: flex; flex-direction: column; }
@@ -56,6 +58,7 @@
     border-radius: 6px; color: #e6edf3; font-size: 14px; outline: none;
   }
   .chat-input button { padding: 8px 16px; background: #238636; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  .chat-input input:disabled, .chat-input button:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -128,13 +131,27 @@ const toastEl = document.getElementById("toast");
 
 let ws;
 let streaming = "";
+let busy = false;
 
 // --- WebSocket connection ---
+let reconnectAttempts = 0;
+const MAX_RECONNECT = 5;
+
 function connect() {
   ws = new WebSocket(WS_URL);
-  ws.onopen = () => addSystemMsg("Connected to ACP server");
-  ws.onclose = () => { statusEl.textContent = "disconnected"; addSystemMsg("Disconnected"); };
-  ws.onerror = () => addSystemMsg("Connection error");
+  ws.onopen = () => { reconnectAttempts = 0; addSystemMsg("Connected to ACP server"); };
+  ws.onclose = () => {
+    statusEl.textContent = "disconnected";
+    if (reconnectAttempts < MAX_RECONNECT) {
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+      reconnectAttempts++;
+      addSystemMsg(`Disconnected. Reconnecting in ${delay/1000}s... (${reconnectAttempts}/${MAX_RECONNECT})`);
+      setTimeout(connect, delay);
+    } else {
+      addSystemMsg("Connection lost. Reload the page to retry.");
+    }
+  };
+  ws.onerror = () => {};
   ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
 }
 
@@ -144,7 +161,11 @@ function sendManifest() {
     type: "manifest",
     app: "pet-registration",
     currentScreen: "register",
-    persona: { name: "Buddy", role: "friendly pet registration assistant" },
+    persona: {
+      name: "Buddy",
+      role: "friendly pet registration assistant",
+      instructions: "Your goal is to collect all the information needed to complete the registration form through natural conversation. Greet the user warmly and ask about their pet. As soon as the user mentions any detail (name, species, age, etc.), fill the corresponding field immediately. If information is still missing after a response, follow up naturally to gather the remaining details — do not wait for the user to ask you to fill the form."
+    },
     screens: {
       register: {
         id: "register",
@@ -180,6 +201,11 @@ function handleMessage(msg) {
 
     case "status":
       statusEl.textContent = msg.status;
+      statusEl.className = "chat-status" + (msg.status === "thinking" || msg.status === "executing" ? " thinking" : "");
+      busy = msg.status !== "idle";
+      inputEl.disabled = busy;
+      document.getElementById("chat-send").disabled = busy;
+      if (!busy) inputEl.focus();
       break;
 
     case "chat":
@@ -224,6 +250,7 @@ function executeCommand(msg) {
           } else {
             typewriter(el, String(action.value));
           }
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
           return { index: i, success: true };
         }
         case "select": {
@@ -231,12 +258,14 @@ function executeCommand(msg) {
           if (!el) return { index: i, success: false, error: "Field not found" };
           el.value = action.value;
           flash(el);
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
           return { index: i, success: true };
         }
         case "clear": {
           const el = document.getElementById(action.field);
           if (!el) return { index: i, success: false, error: "Field not found" };
           el.value = "";
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
           return { index: i, success: true };
         }
         case "click": {
@@ -249,7 +278,11 @@ function executeCommand(msg) {
         }
         case "highlight": {
           const field = document.querySelector(`[data-field="${action.field}"]`);
-          if (field) { field.classList.add("highlight"); setTimeout(() => field.classList.remove("highlight"), 2000); }
+          if (field) {
+            field.classList.add("highlight");
+            setTimeout(() => field.classList.remove("highlight"), 2000);
+            field.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
           return { index: i, success: true };
         }
         case "focus": {

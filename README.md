@@ -4,7 +4,7 @@ Interactive demo showing an AI agent controlling a web form through the [Agent C
 
 The agent can fill fields, select options, click buttons, and navigate — all through natural language.
 
-![ACP Demo](https://acp-protocol.org/demo-screenshot.png)
+<!-- Screenshot will be added when acp-protocol.org is live -->
 
 ## Quick Start
 
