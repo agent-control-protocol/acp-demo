@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACP Demo — Pet Registration</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; display: flex; height: 100vh; }
+
+  /* Form panel */
+  .form-panel { flex: 1; padding: 32px; overflow-y: auto; border-right: 1px solid #30363d; }
+  .form-panel h1 { font-size: 20px; margin-bottom: 4px; }
+  .form-panel p.sub { color: #8b949e; margin-bottom: 24px; font-size: 14px; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 4px; }
+  .field label .req { color: #f85149; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 8px 12px; background: #161b22; border: 1px solid #30363d;
+    border-radius: 6px; color: #e6edf3; font-size: 14px; outline: none; transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: #58a6ff; }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field.highlight input, .field.highlight select, .field.highlight textarea { border-color: #d29922; background: #1c1e08; }
+
+  .actions { display: flex; gap: 8px; margin-top: 20px; }
+  .actions button {
+    padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;
+  }
+  .btn-primary { background: #238636; color: #fff; }
+  .btn-secondary { background: #30363d; color: #e6edf3; }
+
+  .toast {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    padding: 10px 20px; border-radius: 8px; font-size: 14px; z-index: 100;
+    animation: fadeIn 0.3s; display: none;
+  }
+  .toast.success { background: #238636; color: #fff; }
+  .toast.error { background: #da3633; color: #fff; }
+  .toast.info { background: #1f6feb; color: #fff; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
+
+  /* Chat panel */
+  .chat-panel { width: 380px; display: flex; flex-direction: column; }
+  .chat-header { padding: 16px; border-bottom: 1px solid #30363d; font-weight: 600; font-size: 14px; }
+  .chat-status { font-size: 12px; color: #8b949e; font-weight: 400; margin-left: 8px; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { padding: 8px 12px; border-radius: 12px; max-width: 85%; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+  .msg.user { background: #1f6feb; align-self: flex-end; }
+  .msg.agent { background: #21262d; align-self: flex-start; }
+  .msg.system { background: transparent; color: #8b949e; font-size: 12px; align-self: center; font-style: italic; }
+  .chat-input { display: flex; padding: 12px; border-top: 1px solid #30363d; gap: 8px; }
+  .chat-input input {
+    flex: 1; padding: 8px 12px; background: #161b22; border: 1px solid #30363d;
+    border-radius: 6px; color: #e6edf3; font-size: 14px; outline: none;
+  }
+  .chat-input button { padding: 8px 16px; background: #238636; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="form-panel">
+  <h1>Pet Registration</h1>
+  <p class="sub">Fill the form manually or ask the AI agent to do it for you.</p>
+
+  <div class="field" data-field="owner_name">
+    <label>Owner Name <span class="req">*</span></label>
+    <input type="text" id="owner_name" placeholder="John Doe">
+  </div>
+  <div class="field" data-field="owner_email">
+    <label>Owner Email <span class="req">*</span></label>
+    <input type="email" id="owner_email" placeholder="john@example.com">
+  </div>
+  <div class="field" data-field="pet_name">
+    <label>Pet Name <span class="req">*</span></label>
+    <input type="text" id="pet_name" placeholder="Buddy">
+  </div>
+  <div class="field" data-field="species">
+    <label>Species <span class="req">*</span></label>
+    <select id="species">
+      <option value="">Select...</option>
+      <option value="dog">Dog</option>
+      <option value="cat">Cat</option>
+      <option value="bird">Bird</option>
+      <option value="fish">Fish</option>
+      <option value="other">Other</option>
+    </select>
+  </div>
+  <div class="field" data-field="breed">
+    <label>Breed</label>
+    <input type="text" id="breed" placeholder="Golden Retriever">
+  </div>
+  <div class="field" data-field="age">
+    <label>Age (years)</label>
+    <input type="number" id="age" placeholder="3">
+  </div>
+  <div class="field" data-field="notes">
+    <label>Notes</label>
+    <textarea id="notes" placeholder="Allergies, medications, special needs..."></textarea>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" id="btn_register">Register Pet</button>
+    <button class="btn-secondary" id="btn_clear">Clear Form</button>
+  </div>
+</div>
+
+<div class="chat-panel">
+  <div class="chat-header">
+    AI Agent <span class="chat-status" id="status">connecting...</span>
+  </div>
+  <div class="chat-messages" id="messages"></div>
+  <div class="chat-input">
+    <input type="text" id="chat-input" placeholder="Ask the agent to fill the form..." autofocus>
+    <button id="chat-send">Send</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const WS_URL = "ws://localhost:__ACP_WS_PORT__/connect";
+const statusEl = document.getElementById("status");
+const messagesEl = document.getElementById("messages");
+const inputEl = document.getElementById("chat-input");
+const toastEl = document.getElementById("toast");
+
+let ws;
+let streaming = "";
+
+// --- WebSocket connection ---
+function connect() {
+  ws = new WebSocket(WS_URL);
+  ws.onopen = () => addSystemMsg("Connected to ACP server");
+  ws.onclose = () => { statusEl.textContent = "disconnected"; addSystemMsg("Disconnected"); };
+  ws.onerror = () => addSystemMsg("Connection error");
+  ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
+}
+
+// --- Send manifest on config ---
+function sendManifest() {
+  ws.send(JSON.stringify({
+    type: "manifest",
+    app: "pet-registration",
+    currentScreen: "register",
+    persona: { name: "Buddy", role: "friendly pet registration assistant" },
+    screens: {
+      register: {
+        id: "register",
+        label: "Pet Registration",
+        fields: [
+          { id: "owner_name", type: "text", label: "Owner Name", required: true },
+          { id: "owner_email", type: "email", label: "Owner Email", required: true },
+          { id: "pet_name", type: "text", label: "Pet Name", required: true },
+          { id: "species", type: "select", label: "Species", required: true, options: [
+            { value: "dog", label: "Dog" }, { value: "cat", label: "Cat" },
+            { value: "bird", label: "Bird" }, { value: "fish", label: "Fish" },
+            { value: "other", label: "Other" }
+          ]},
+          { id: "breed", type: "text", label: "Breed" },
+          { id: "age", type: "number", label: "Age (years)" },
+          { id: "notes", type: "textarea", label: "Notes" },
+        ],
+        actions: [
+          { id: "register", label: "Register Pet" },
+          { id: "clear", label: "Clear Form" },
+        ],
+      },
+    },
+  }));
+}
+
+// --- Handle server messages ---
+function handleMessage(msg) {
+  switch (msg.type) {
+    case "config":
+      sendManifest();
+      break;
+
+    case "status":
+      statusEl.textContent = msg.status;
+      break;
+
+    case "chat":
+      if (streamEl) {
+        // Stream already shows the text — just finalize, don't duplicate
+        finalizeStream();
+      } else {
+        addAgentMsg(msg.message);
+      }
+      break;
+
+    case "chat_token":
+      if (!streaming) { streaming = ""; startStream(); }
+      streaming += msg.token;
+      updateStream(streaming);
+      break;
+
+    case "command":
+      executeCommand(msg);
+      break;
+
+    case "error":
+      addSystemMsg("Error: " + msg.message);
+      break;
+  }
+}
+
+// --- Execute UI commands ---
+function executeCommand(msg) {
+  const results = msg.actions.map((action, i) => {
+    try {
+      switch (action.do) {
+        case "fill": {
+          const el = document.getElementById(action.field);
+          if (!el) return { index: i, success: false, error: "Field not found" };
+          const tag = el.tagName.toLowerCase();
+          const inputType = el.getAttribute("type") || "text";
+          // Select, number, date — set directly (no typewriter)
+          if (tag === "select" || ["number", "date", "datetime-local"].includes(inputType)) {
+            el.value = String(action.value);
+            flash(el);
+          } else {
+            typewriter(el, String(action.value));
+          }
+          return { index: i, success: true };
+        }
+        case "select": {
+          const el = document.getElementById(action.field);
+          if (!el) return { index: i, success: false, error: "Field not found" };
+          el.value = action.value;
+          flash(el);
+          return { index: i, success: true };
+        }
+        case "clear": {
+          const el = document.getElementById(action.field);
+          if (!el) return { index: i, success: false, error: "Field not found" };
+          el.value = "";
+          return { index: i, success: true };
+        }
+        case "click": {
+          addSystemMsg("Clicked: " + action.action);
+          if (action.action === "clear") {
+            document.querySelectorAll(".form-panel input, .form-panel select, .form-panel textarea")
+              .forEach(el => el.value = "");
+          }
+          return { index: i, success: true };
+        }
+        case "highlight": {
+          const field = document.querySelector(`[data-field="${action.field}"]`);
+          if (field) { field.classList.add("highlight"); setTimeout(() => field.classList.remove("highlight"), 2000); }
+          return { index: i, success: true };
+        }
+        case "focus": {
+          const el = document.getElementById(action.field);
+          if (el) el.focus();
+          return { index: i, success: true };
+        }
+        case "show_toast": {
+          showToast(action.message, action.level || "info");
+          return { index: i, success: true };
+        }
+        case "navigate":
+          return { index: i, success: true };
+        default:
+          return { index: i, success: true };
+      }
+    } catch (err) {
+      return { index: i, success: false, error: err.message };
+    }
+  });
+
+  ws.send(JSON.stringify({ type: "result", seq: msg.seq, results }));
+}
+
+// --- Typewriter effect ---
+function typewriter(el, value) {
+  el.value = "";
+  flash(el);
+  let i = 0;
+  const interval = setInterval(() => {
+    el.value += value[i];
+    i++;
+    if (i >= value.length) clearInterval(interval);
+  }, 25);
+}
+
+function flash(el) {
+  const field = el.closest(".field");
+  if (field) { field.classList.add("highlight"); setTimeout(() => field.classList.remove("highlight"), 1500); }
+}
+
+// --- Chat UI ---
+function addAgentMsg(text) { addMsg(text, "agent"); }
+function addUserMsg(text) { addMsg(text, "user"); }
+function addSystemMsg(text) { addMsg(text, "system"); }
+
+function addMsg(text, cls) {
+  const div = document.createElement("div");
+  div.className = "msg " + cls;
+  div.textContent = text;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+let streamEl = null;
+function startStream() { streamEl = document.createElement("div"); streamEl.className = "msg agent"; messagesEl.appendChild(streamEl); }
+function updateStream(text) { if (streamEl) { streamEl.textContent = text; messagesEl.scrollTop = messagesEl.scrollHeight; } }
+function finalizeStream() { streaming = ""; streamEl = null; }
+
+// --- Toast ---
+function showToast(msg, level) {
+  toastEl.textContent = msg;
+  toastEl.className = "toast " + level;
+  toastEl.style.display = "block";
+  setTimeout(() => { toastEl.style.display = "none"; }, 3000);
+}
+
+// --- Send user message ---
+function sendText() {
+  const text = inputEl.value.trim();
+  if (!text || !ws) return;
+  addUserMsg(text);
+  ws.send(JSON.stringify({ type: "text", message: text }));
+  inputEl.value = "";
+}
+
+document.getElementById("chat-send").addEventListener("click", sendText);
+inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") sendText(); });
+
+// --- Start ---
+connect();
+</script>
+</body>
+</html>

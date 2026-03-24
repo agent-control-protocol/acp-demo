@@ -1,0 +1,11 @@
+{
+  "name": "acp-demo",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@acprotocol/server": "^0.1.0"
+  }
+}
