@@ -12,8 +12,17 @@ The agent can fill fields, select options, click buttons, and navigate — all t
 git clone https://github.com/agent-control-protocol/acp-demo.git
 cd acp-demo
 npm install
-OPENAI_API_KEY=sk-... npm start
+cp .env.example .env     # ← edit this file and add your API key
+npm start
 ```
+
+The `.env` file only needs one line:
+
+```
+OPENAI_API_KEY=sk-your-key-here
+```
+
+Alternatively, pass it inline: `OPENAI_API_KEY=sk-... npm start`
 
 Open **http://localhost:3098** and try:
 

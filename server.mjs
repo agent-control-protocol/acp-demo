@@ -1,11 +1,20 @@
 import { createServer } from "@acprotocol/server";
 import OpenAI from "openai";
 import { createServer as createHttpServer } from "node:http";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// --- Load .env file (zero dependencies) ---
+const envPath = resolve(__dirname, ".env");
+if (existsSync(envPath)) {
+  for (const line of readFileSync(envPath, "utf-8").split("\n")) {
+    const match = line.match(/^\s*([\w]+)\s*=\s*(.+?)\s*$/);
+    if (match && !process.env[match[1]]) process.env[match[1]] = match[2];
+  }
+}
 
 // --- ACP Server (WebSocket on port 3099) ---
 const apiKey = process.env.OPENAI_API_KEY;
@@ -13,8 +22,9 @@ const baseURL = process.env.OPENAI_BASE_URL;
 
 if (!apiKey) {
   console.error("Error: OPENAI_API_KEY environment variable is required.\n");
-  console.error("Usage:");
-  console.error("  OPENAI_API_KEY=sk-... npm start\n");
+  console.error("Usage (pick one):");
+  console.error("  1. Create a .env file:  cp .env.example .env  (then edit it)");
+  console.error("  2. Inline:              OPENAI_API_KEY=sk-... npm start\n");
   console.error("Options:");
   console.error("  OPENAI_BASE_URL   LLM base URL (default: OpenAI)");
   console.error("  ACP_MODEL         Model name (default: gpt-4o)");
