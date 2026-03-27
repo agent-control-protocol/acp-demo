@@ -2,7 +2,7 @@
 
 Interactive demo showing an AI agent controlling a web form through the [Agent Control Protocol (ACP)](https://github.com/agent-control-protocol/acp).
 
-The agent can fill fields, select options, click buttons, and navigate — all through natural language.
+The agent can set field values, click buttons, and navigate — all through natural language.
 
 <!-- Screenshot will be added when acp-protocol.org is live -->
 
@@ -67,7 +67,7 @@ OPENAI_API_KEY=sk-... OPENAI_BASE_URL=https://api.deepseek.com ACP_MODEL=deepsee
 1. The browser sends a **manifest** describing the form (fields, types, actions)
 2. The user types a natural language message in the chat
 3. The ACP server forwards it to the LLM along with the manifest
-4. The LLM responds with structured **commands** (`fill`, `select`, `click`, etc.)
+4. The LLM responds with structured **commands** (`set_field`, `click`, etc.)
 5. The browser executes each command with visual feedback and reports **results** back
 
 ## Related
