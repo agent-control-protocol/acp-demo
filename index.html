@@ -209,18 +209,16 @@ function handleMessage(msg) {
       break;
 
     case "chat":
-      if (streamEl) {
+      if (msg.delta) {
+        if (!streaming) { streaming = ""; startStream(); }
+        streaming += msg.message;
+        updateStream(streaming);
+      } else if (streamEl) {
         // Stream already shows the text — just finalize, don't duplicate
         finalizeStream();
       } else {
         addAgentMsg(msg.message);
       }
-      break;
-
-    case "chat_token":
-      if (!streaming) { streaming = ""; startStream(); }
-      streaming += msg.token;
-      updateStream(streaming);
       break;
 
     case "command":
@@ -238,7 +236,7 @@ function executeCommand(msg) {
   const results = msg.actions.map((action, i) => {
     try {
       switch (action.do) {
-        case "fill": {
+        case "set_field": {
           const el = document.getElementById(action.field);
           if (!el) return { index: i, success: false, error: "Field not found" };
           const tag = el.tagName.toLowerCase();
@@ -250,14 +248,6 @@ function executeCommand(msg) {
           } else {
             typewriter(el, String(action.value));
           }
-          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          return { index: i, success: true };
-        }
-        case "select": {
-          const el = document.getElementById(action.field);
-          if (!el) return { index: i, success: false, error: "Field not found" };
-          el.value = action.value;
-          flash(el);
           el.scrollIntoView({ behavior: "smooth", block: "nearest" });
           return { index: i, success: true };
         }
@@ -274,20 +264,6 @@ function executeCommand(msg) {
             document.querySelectorAll(".form-panel input, .form-panel select, .form-panel textarea")
               .forEach(el => el.value = "");
           }
-          return { index: i, success: true };
-        }
-        case "highlight": {
-          const field = document.querySelector(`[data-field="${action.field}"]`);
-          if (field) {
-            field.classList.add("highlight");
-            setTimeout(() => field.classList.remove("highlight"), 2000);
-            field.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          }
-          return { index: i, success: true };
-        }
-        case "focus": {
-          const el = document.getElementById(action.field);
-          if (el) el.focus();
           return { index: i, success: true };
         }
         case "show_toast": {
