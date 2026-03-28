@@ -6,6 +6,7 @@
     "start": "node server.mjs"
   },
   "dependencies": {
-    "@acprotocol/server": "file:../acp-server"
+    "@acprotocol/server": "file:../acp-server",
+    "openai": "^6.33.0"
   }
 }
