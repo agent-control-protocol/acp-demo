@@ -49,6 +49,9 @@ const acp = createServer({
 
 await acp.start();
 console.log(`ACP server running on ws://localhost:${wsPort}/connect`);
+console.log(`  LLM endpoint: ${baseURL ?? "https://api.openai.com (default)"}`);
+console.log(`  Model:        ${process.env.ACP_MODEL ?? "gpt-4o"}`);
+console.log(`  Key prefix:   ${apiKey.slice(0, 7)}...${apiKey.slice(-4)}`);
 
 // --- Static HTTP server ---
 const html = readFileSync(resolve(__dirname, "index.html"), "utf-8");

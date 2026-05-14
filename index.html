@@ -192,11 +192,53 @@ function sendManifest() {
   }));
 }
 
+// --- Emit `state` messages whenever the user edits a field ---
+// Demonstrates the v2.1 read path: the SDK pushes current field values so
+// the agent sees what the user has typed without needing to ask.
+const STATE_FIELDS = [
+  "owner_name", "owner_email", "pet_name", "species",
+  "breed", "age", "notes",
+];
+
+function buildScreenState() {
+  const fields = {};
+  for (const id of STATE_FIELDS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const value = el.value;
+    if (value === "" || value === undefined) continue;
+    fields[id] = { value, dirty: true, valid: true };
+  }
+  // canSubmit = all required fields filled.
+  const required = ["owner_name", "owner_email", "pet_name", "species"];
+  const canSubmit = required.every((id) => fields[id]?.value);
+  return { type: "state", screen: "register", fields, canSubmit };
+}
+
+let stateTimer = null;
+function emitStateDebounced() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  clearTimeout(stateTimer);
+  stateTimer = setTimeout(() => {
+    ws.send(JSON.stringify(buildScreenState()));
+  }, 300);
+}
+
+function wireStateEmitters() {
+  for (const id of STATE_FIELDS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const evt = el.tagName.toLowerCase() === "select" ? "change" : "input";
+    el.addEventListener(evt, emitStateDebounced);
+  }
+}
+
 // --- Handle server messages ---
 function handleMessage(msg) {
   switch (msg.type) {
     case "config":
       sendManifest();
+      wireStateEmitters();
       break;
 
     case "status":
