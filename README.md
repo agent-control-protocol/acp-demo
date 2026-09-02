@@ -1,3 +1,4 @@
+<!-- curadoria: kind="entry" keywords="[arquitetura]" summary="Demo pet-registration: manifesto do form vira comandos do LLM" confirmed-useful="2026-09-02" -->
 # ACP Demo — Pet Registration
 
 Interactive demo showing an AI agent controlling a web form through the [Agent Control Protocol (ACP)](https://github.com/agent-control-protocol/acp).
